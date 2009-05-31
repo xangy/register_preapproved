@@ -1,0 +1,5 @@
+; $Id$
+name = "Register Pre-approved"
+description = "Maintain email address and domain patterns for users with pre-approved access when registering for a new account."
+dependencies[] = user
+core = 6.x

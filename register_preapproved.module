@@ -1,0 +1,512 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * The register_preapproved module file, which produces the primary functionality.
+ *
+ */
+
+/**
+ * Implementation of hook_help().
+ */
+function register_preapproved_help($path, $arg) {
+  switch ($path) {
+    case 'admin/user/register_preapproved':
+      $output = '<p>'. t('Email addresses and domain patterns for users who are pre-approved to access the web site after registering (subject to the !public setting). Note: deleting patterns from this list does not affect the account status for users already registered.', array('!public' => l('Public Registrations', 'admin/user/settings'))) .'</p>';
+      $output .= '<p>'. t('The count column indicates the number (as per the register pre-approved !settings page) of registered users associated with each pattern. Full email addresses containing another domain pattern are not included in the corresponding domain pattern count.', array('!settings' => l('Settings', 'admin/user/register_preapproved/settings'))) .'</p>';
+      return $output;
+    case 'admin/user/register_preapproved/add':
+      return '<p>'. t('Enter one or more email addresses or domain patterns and select the custom roles (as per the register pre-approved !settings page) for users who are pre-approved to access the web site after registering (subject to the !public setting).', array('!settings' => l('Settings', 'admin/user/register_preapproved/settings'), '!public' => l('Public Registrations', 'admin/user/settings'))) .'</p>';
+    case 'admin/user/register_preapproved/settings':
+      $output = '<p>'. t('Pattern counts appearing on the list page can include or exclude pre-existing account email addresses that pre-date when each pattern was added.') .'</p>';
+      $output .= '<p>'. t('Define a custom welcome message shown to pre-approved users after registration is complete.') .'</p>';
+      $output .= '<p>'. t('Select the default custom roles available for selection when adding email addresses and domain patterns. If you do not see any custom roles, you can define some on the !link page.', array('!link' => l('Roles', 'admin/user/roles'))) .'</p>';
+      return $output;
+    case 'admin/user/register_preapproved/%/edit':
+      return '<p'. t('To change the email address or domain for this pattern, you must delete it and create a new entry.') .'</p>';
+  }
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function register_preapproved_menu() {
+  $items = array();
+
+  $items['admin/user/register_preapproved'] = array(
+    'title' => 'Register pre-approved',
+    'page callback' => 'register_preapproved_list',
+    'access arguments' => array('administer site configuration'),
+    'description' => 'Manage register pre-approved settings.',
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/user/register_preapproved/list'] = array(
+    'title' => 'List',
+    'page callback' => 'register_preapproved_list',
+    'access arguments' => array('administer site configuration'),
+    'weight' => 0,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['admin/user/register_preapproved/add'] = array(
+    'title' => 'Add',
+    'page callback' => 'register_preapproved_add',
+    'access arguments' => array('administer site configuration'),
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/user/register_preapproved/settings'] = array(
+    'title' => 'Settings',
+    'page callback' => 'register_preapproved_settings',
+    'access arguments' => array('administer site configuration'),
+    'weight' => 2,
+    'type' => MENU_LOCAL_TASK,
+  );
+  // title omitted to display local menu when editing a pattern's role assignments
+  $items['admin/user/register_preapproved/%/edit'] = array(
+    'title' => '',
+    'page callback' => 'register_preapproved_edit',
+    'page arguments' => array(3),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function register_preapproved_theme() {
+  return array(
+    'register_preapproved_list_form' => array(
+      'arguments' => array('form' => NULL),
+    ),
+  );
+}
+
+/**
+ * Custom callback function for register pre-approved list.
+ */
+function register_preapproved_list() {
+  return drupal_get_form('register_preapproved_list_form');
+}
+
+/**
+ * Custom callback function to list pre-approved email addresses or domains.
+ */
+function register_preapproved_list_form($form_state) {
+  $header = array(
+    array(),
+    array('data' => t('Pattern'), 'field' => 'rp.mail', 'sort' => 'desc'),
+    array('data' => t('Added'), 'field' => 'rp.timestamp'),
+    array('data' => t('Count')),
+    array('data' => t('Roles')),
+    array('data' => t('Operations')),
+  );
+
+  $sql = 'SELECT rp.* FROM {register_preapproved} rp LEFT JOIN {users} u ON u.mail = rp.mail';
+  $result = pager_query($sql . tablesort_sql($header), 20, 0);
+
+  $options = array();
+  while ($email = db_fetch_object($result)) {
+    // retrieve match count for this email address or domain pattern
+    // include or exclude (below) pre-existing email addresses
+    if (variable_get('register_preapproved_count', 0)) {
+      $count = db_result(db_query("SELECT COUNT(*) FROM {users} u
+                                   WHERE u.mail LIKE '%%%s' AND u.mail NOT IN
+                                   (SELECT rp.mail FROM {register_preapproved} rp
+                                   INNER JOIN {users} u ON u.mail = rp.mail AND rp.mail <> '%s')",
+                                   $email->mail, $email->mail));
+    }
+    else {
+      $count = db_result(db_query("SELECT COUNT(*) FROM {users} u
+                                   WHERE u.mail LIKE '%%%s' AND u.mail NOT IN
+                                   (SELECT rp.mail FROM {register_preapproved} rp
+                                   INNER JOIN {users} u ON u.mail = rp.mail AND rp.mail <> '%s') AND u.created >
+                                   (SELECT timestamp FROM {register_preapproved} WHERE mail = '%s')",
+                                   $email->mail, $email->mail, $email->mail));
+    }
+
+    $options[$email->rpid] = '';
+    $form['email'][$email->rpid] = array(
+      '#value' => $email->mail,
+    );
+    $form['timestamp'][$email->rpid] = array(
+      '#value' => t('!date (!ago ago)', array('!date' => date("M j, Y", $email->timestamp), '!ago' => format_interval(time() - $email->timestamp))),
+    );
+    $form['count'][$email->rpid] = array(
+      '#value' => $count,
+    );
+    $form['roles'][$email->rpid] = array(
+      '#value' => implode(', ', unserialize($email->roles)),
+    );
+    $form['operations'][$email->rpid] = array(
+      '#value' => l(t('edit roles'), 'admin/user/register_preapproved/'. $email->rpid .'/edit'),
+    );
+  }
+
+  $form['delete'] = array(
+    '#type' => 'checkboxes',
+    '#options' => $options
+  );
+
+  $form['pager'] = array('#value' => theme('pager', NULL, 20, 0));
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Delete'));
+
+  return $form;
+}
+
+/**
+ * Theme register_preapproved_admin_list_form().
+ */
+function theme_register_preapproved_list_form($form) {
+  $header = array(
+    theme('table_select_header_cell'),
+    array('data' => t('Pattern'), 'field' => 'rp.mail', 'sort' => 'desc'),
+    array('data' => t('Added'), 'field' => 'rp.timestamp'),
+    array('data' => t('Count')),
+    array('data' => t('Roles')),
+    array('data' => t('Operations')),
+  );
+
+  if (isset($form['email']) && is_array($form['email'])) {
+    foreach (element_children($form['email']) as $key) {
+      $rows[] = array(
+        drupal_render($form['delete'][$key]),
+        drupal_render($form['email'][$key]),
+        drupal_render($form['timestamp'][$key]),
+        array('data' => drupal_render($form['count'][$key]), 'align' => 'center'),
+        drupal_render($form['roles'][$key]),
+        drupal_render($form['operations'][$key]),
+      );
+    }
+
+    $output = theme('table', $header, $rows);
+    if ($form['pager']['#value']) {
+      $output .= drupal_render($form['pager']);
+    }
+
+    $output .= drupal_render($form);
+  }
+  else {
+    $output = '<em>'. t('No email addresses or domain patterns found. You can add some via the register pre-approved !link page.', array('!link' => l('Add', 'admin/user/register_preapproved/add'))) .'<em>';
+  }
+
+  return $output;
+}
+
+/**
+ * Implementation of hook_validate().
+ */
+function register_preapproved_list_form_validate($form, &$form_state) {
+  $form_state['values']['delete'] = array_filter($form_state['values']['delete']);
+  if (count($form_state['values']['delete']) == 0) {
+    form_set_error('', t('No email addresses or domain patterns selected.'));
+  }
+}
+
+/**
+ * Implementation of hook_submit().
+ */
+function register_preapproved_list_form_submit($form, &$form_state) {
+  $deleted = 0;
+  $deletes = array_filter($form_state['values']['delete']);
+  foreach ($deletes as $rpid) {
+    db_query("DELETE FROM {register_preapproved} WHERE rpid = '%s'", $rpid);
+    $deleted++;
+  }
+  drupal_set_message(t('!deleted email addresses or domain patterns successfully deleted.', array('!deleted' => $deleted)));
+}
+
+/**
+ * Custom callback function for register pre-approved add form.
+ */
+function register_preapproved_add() {
+  return drupal_get_form('register_preapproved_add_form');
+}
+
+/**
+ * Register pre-approved add form.
+ *
+ * @param array
+ * @return array
+ */
+function register_preapproved_add_form($form_state) {
+  $form['register_preapproved']['emails'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Pre-approved email addresses and domains'),
+    '#description' => t('Enter a list of email addresses and domain patterns, one entry per line. Valid patterns are full email addresses or domains beginning with the @ symbol. Exp. @domain.com'),
+  );
+  $register_preapproved_roles = array_filter(variable_get('register_preapproved_roles', array()));
+  if (count($register_preapproved_roles)) {
+    // retrieve user roles excluding anonymous
+    $user_roles = user_roles(TRUE);
+    // create options from default role selections
+    foreach ($register_preapproved_roles as $rid) {
+      // make sure pre-approved role exists
+      if (isset($user_roles[$rid])) {
+        $options[$rid] = $user_roles[$rid];
+      }
+    }
+    $form['register_preapproved']['roles'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Pre-approved roles'),
+      '#options' => $options,
+      '#description' => t('Select the custom roles automatically assigned to these pre-approved users during registration.'),
+    );
+  }
+
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Add'));
+
+  return $form;
+}
+
+/**
+ * Implementation of hook_validate().
+ */
+function register_preapproved_add_form_validate($form, &$form_state) {
+  if (empty($form_state['values']['emails'])) {
+    form_set_error('emails', t('You must enter at least one email address or domain pattern.'));
+  }
+  else {
+    $errors = array();
+    // preg_split more reliable than split to eliminate empty array elements
+    $emails = preg_split('/[\n\r]+/', $form_state['values']['emails']);
+    foreach ($emails as $email) {
+      if ($email = trim($email)) {
+        // portion of validation logic copied from _user_edit_validate()
+        if (!valid_email_address($email) && !valid_domain($email)) {
+          $errors[] = t('The e-mail address or domain %email is not valid.', array('%email' => $email));
+        }
+        else if (db_result(db_query("SELECT COUNT(*) FROM {users} WHERE LOWER(mail) = LOWER('%s')", $email))) {
+          $errors[] = t('The e-mail address %email is already registered.', array('%email' => $email));
+        }
+        else if (drupal_is_denied('mail', $email)) {
+          $errors[] = t('The e-mail address %email has been denied access.', array('%email' => $email));
+        }
+        else if (db_result(db_query("SELECT COUNT(*) FROM {register_preapproved} WHERE LOWER(mail) = LOWER('%s')", $email))) {
+          $errors[] = t('The e-mail address or domain %email is already pre-approved.', array('%email' => $email));
+        }
+        else if (strlen($email) > EMAIL_MAX_LENGTH) {
+          $errors[] = t('The e-mail address or domain %email cannot not exceed !maxlength characters.', array('%email' => $email, '!maxlength' => EMAIL_MAX_LENGTH));
+        }
+      }
+    }
+    if (count($errors)) {
+      array_unshift($errors, t('The following problems occurred while preparing to add the email addresses and/or domain patterns and must be corrected before continuing:') .'<br />');
+      form_set_error('emails', implode('<br />', $errors));
+    }
+  }
+}
+
+/**
+ * Implementation of hook_submit().
+ */
+function register_preapproved_add_form_submit($form, &$form_state) {
+  $added = 0;
+  $emails = preg_split('/[\n\r]+/', $form_state['values']['emails']);
+  $original = count($emails);
+  // remove duplicate entries, if any
+  $emails = array_unique($emails);
+  $register_preapproved_roles = array();
+  if (isset($form_state['values']['roles'])) {
+    // retrieve user roles excluding anonymous
+    $user_roles = user_roles(TRUE);
+    $register_preapproved_roles = array_filter($form_state['values']['roles']);
+    // create pattern default role selections
+    foreach ($register_preapproved_roles as $rid) {
+      $register_preapproved_roles[$rid] = $user_roles[$rid];
+    }
+  }
+  foreach ($emails as $email) {
+    if ($email = trim($email)) {
+      db_query("INSERT INTO {register_preapproved} (mail, roles, timestamp) VALUES ('%s', '%s', %d)", $email, serialize($register_preapproved_roles), time());
+      $added++;
+    }
+  }
+
+  drupal_set_message(t('!added pre-approved email addresses or domain patterns successfully added.', array('!added' => $added)));
+
+  if ($original != $added) {
+    // alert admin of duplicate entries
+    $adjusted = $original - $added;
+    drupal_set_message(t('!adjusted duplicate email addresses or domain patterns were detected and automatically excluded.', array('!adjusted' => $adjusted)), 'warning');
+  }
+}
+
+/**
+ * Copy of valid_email_address(), but without user name.
+ * Validate everything after and including the @ symbol.
+ * Exp. @domain.com
+ *
+ * @param string
+ * @return boolean
+ */
+function valid_domain($mail) {
+  $domain = '(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+';
+  $ipv4 = '[0-9]{1,3}(\.[0-9]{1,3}){3}';
+  $ipv6 = '[0-9a-fA-F]{1,4}(\:[0-9a-fA-F]{1,4}){7}';
+
+  return preg_match("/^@($domain|(\[($ipv4|$ipv6)\]))$/", $mail);
+}
+
+/**
+ * Custom callback function for register pre-approved settings form.
+ */
+function register_preapproved_settings() {
+  // exclude anonymous user
+  $register_preapproved_roles = user_roles(TRUE);
+  // remove authenticated user
+  unset($register_preapproved_roles[DRUPAL_AUTHENTICATED_RID]);
+
+  return drupal_get_form('register_preapproved_settings_form', $register_preapproved_roles);
+}
+
+/**
+ * Custom function for register pre-approved settings form.
+ * 
+ * @param array
+ * @return array
+ */
+function register_preapproved_settings_form($form_id, $register_preapproved_roles) {
+  $form['register_preapproved_count'] = array(
+    '#type' => 'radios',
+    '#title' => t('Include pre-existing account email addresses in list page counts'),
+    '#default_value' => variable_get('register_preapproved_count', 0),
+    '#options' => array(t('Exclude'), t('Include')),
+    '#description' => 'Choose to exclude/include pre-existing account email addresses created prior to the corresponding pattern creation timestamp.',
+  );
+  $form['register_preapproved_message'] = array(
+    '#type' => 'textfield', 
+    '#title' => t('Pre-approved message'),
+    '#default_value' => variable_get('register_preapproved_message', t('You have been pre-approved and granted access to %site_name.')),
+    '#size' => 100, 
+    '#maxlength' => 250,
+    '#description' => t('This message will appear to pre-approved users after registration. Available variable: %site_name'),
+  );
+  if (count($register_preapproved_roles)) {
+    $form['register_preapproved_roles'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Pre-approved roles'), 
+      '#default_value' => variable_get('register_preapproved_roles', array()),
+      '#options' => $register_preapproved_roles,
+      '#description' => t('Select the custom roles available for assignment when adding email addresses and domain patterns.'),
+    );
+  }
+
+  return system_settings_form($form);
+}
+
+/**
+ * Custom callback function for register pre-approved edit form.
+ *
+ * @param integer
+ * @return string
+ */
+function register_preapproved_edit($rpid) {
+  drupal_set_title(t('Register pre-approved'));
+
+  if (is_numeric($rpid)) {
+    $result = db_query("SELECT * FROM {register_preapproved} WHERE rpid = %d", $rpid);
+    while ($pattern = db_fetch_object($result)) {
+      if (count(array_filter(variable_get('register_preapproved_roles', array())))) {
+        return drupal_get_form('register_preapproved_edit_form', $pattern);
+      }
+      else {
+        drupal_set_message(t('There are no default roles defined. You can define some on the !settings page.', array('!settings' => l('register pre-approved settings', 'admin/user/register_preapproved/settings'))), 'error');
+      }
+    }
+  }
+  else {
+    drupal_set_message(t('The email address or domain record was not found.'), 'error');
+  }
+
+  drupal_goto('admin/user/register_preapproved/list');
+}
+
+/**
+ * Register pre-approved edit form.
+ * 
+ * @param array
+ * @return array
+ */
+function register_preapproved_edit_form($form_state, $pattern) {
+  $register_preapproved_roles = array_filter(variable_get('register_preapproved_roles', array()));
+  if (count($register_preapproved_roles)) {
+    // retrieve user roles excluding anonymous
+    $user_roles = user_roles(TRUE);
+    foreach ($register_preapproved_roles as $rid) {
+      // make sure pre-approved role exists
+      if (isset($user_roles[$rid])) {
+        $options[$rid] = $user_roles[$rid];
+      }
+    }
+    $form['register_preapproved']['roles'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Pre-approved roles for %title', array('%title' => $pattern->mail)),
+      '#default_value' => array_keys(unserialize($pattern->roles)),
+      '#options' => $options,
+      '#description' => t('Select the custom roles automatically assigned for this pattern during registration.'),
+    );
+  }
+
+  $form['rpid'] = array('#type' => 'hidden', '#value' => $pattern->rpid);
+  $form['mail'] = array('#type' => 'hidden', '#value' => $pattern->mail);
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Update'));
+
+  return $form;
+}
+
+/**
+ * Implementation of hook_submit().
+ */
+function register_preapproved_edit_form_submit($form, &$form_state) {
+  if (isset($form_state['values']['roles'])) {
+    // retrieve user roles excluding anonymous
+    $user_roles = user_roles(TRUE);
+    $register_preapproved_roles = array_filter($form_state['values']['roles']);
+    // create pattern default role selections
+    foreach ($register_preapproved_roles as $rid) {
+      $register_preapproved_roles[$rid] = $user_roles[$rid];
+    }
+    db_query("UPDATE {register_preapproved} SET roles = '%s' WHERE rpid = %d", serialize($register_preapproved_roles), $form_state['values']['rpid']);
+  }
+
+  drupal_set_message(t('The custom role selections for @email were successfully updated.', array('@email' => $form_state['values']['mail'])));
+
+  drupal_goto('admin/user/register_preapproved/list');
+}
+
+/**
+ * Implementation of hook_user().
+ */
+function register_preapproved_user($op, &$edit, &$account, $category = NULL) {
+  switch ($op) {
+    case 'insert':
+      // match full email address or just the domain including the @ symbol
+      $result = db_query("SELECT * FROM {register_preapproved} WHERE LOWER(mail) = LOWER('%s') OR LOWER(mail) = LOWER('%s') LIMIT 1", $edit['mail'], strstr($edit['mail'], '@'));
+      while ($pattern = db_fetch_object($result)) {
+        // email address or domain is pre-approved
+        $register_preapproved_roles = array_keys(unserialize($pattern->roles));
+        if (count($register_preapproved_roles)) {
+          // retrieve user roles excluding anonymous
+          $user_roles = user_roles(TRUE);
+          // apply pre-approved role selections
+          foreach ($register_preapproved_roles as $rid) {
+            // make sure pre-approved role exists
+            if (isset($user_roles[$rid])) {
+              $edit['roles'][$rid] = $user_roles[$rid];
+            }
+          }
+        }
+        // grant access regardless of user registration settings (admin/user/settings)
+        // forcibly set account status to active because it's not possible in user_save()
+        db_query("UPDATE {users} SET status = 1 WHERE uid = %d", $account->uid);
+        // display pre-approved confirmation message to user after registration
+        $message = variable_get('register_preapproved_message', t('You have been pre-approved and granted access to %site_name.'));
+        drupal_set_message(t($message, array('%site_name' => variable_get('site_name', 'Drupal'))));
+      }
+      break;
+  }
+}
