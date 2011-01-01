@@ -190,7 +190,7 @@ function theme_register_preapproved_list_form($form) {
     $output .= drupal_render($form);
   }
   else {
-    $output = '<em>'. t('No email addresses or domain patterns found. You can add some via the register pre-approved !link page.', array('!link' => l('Add', 'admin/user/register_preapproved/add'))) .'<em>';
+    $output = '<em>'. t('No email addresses or domain patterns found. You can add some via the register pre-approved !link page.', array('!link' => l('Add', 'admin/user/register_preapproved/add'))) .'</em>';
   }
 
   return $output;
