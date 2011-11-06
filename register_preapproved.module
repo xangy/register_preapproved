@@ -28,6 +28,13 @@ function register_preapproved_help($path, $arg) {
 }
 
 /**
+ * Implementation of hook_perm().
+ */
+function register_preapproved_perm() {
+  return array('administer pre-approved patterns');
+}
+
+/**
  * Implementation of hook_menu().
  */
 function register_preapproved_menu() {
@@ -36,28 +43,28 @@ function register_preapproved_menu() {
   $items['admin/user/register_preapproved'] = array(
     'title' => 'Register pre-approved',
     'page callback' => 'register_preapproved_list',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer pre-approved patterns'),
     'description' => 'Manage register pre-approved settings.',
     'type' => MENU_NORMAL_ITEM,
   );
   $items['admin/user/register_preapproved/list'] = array(
     'title' => 'List',
     'page callback' => 'register_preapproved_list',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer pre-approved patterns'),
     'weight' => 0,
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
   $items['admin/user/register_preapproved/add'] = array(
     'title' => 'Add',
     'page callback' => 'register_preapproved_add',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer pre-approved patterns'),
     'weight' => 1,
     'type' => MENU_LOCAL_TASK,
   );
   $items['admin/user/register_preapproved/settings'] = array(
     'title' => 'Settings',
     'page callback' => 'register_preapproved_settings',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer pre-approved patterns'),
     'weight' => 2,
     'type' => MENU_LOCAL_TASK,
   );
@@ -66,7 +73,7 @@ function register_preapproved_menu() {
     'title' => '',
     'page callback' => 'register_preapproved_edit',
     'page arguments' => array(3),
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('administer pre-approved patterns'),
     'type' => MENU_CALLBACK,
   );
 
