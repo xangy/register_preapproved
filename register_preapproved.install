@@ -1,21 +1,10 @@
 <?php
-
 /**
  * @file
  * The register_preapproved module install file, which handles the install/uninstall tasks.
- *
  */
-
 /**
- * Implementation of hook_install().
- */
-function register_preapproved_install() {
-  // Create tables
-  drupal_install_schema('register_preapproved');
-}
-
-/**
- * Implementation of hook_schema().
+ * Implements hook_schema().
  */
 function register_preapproved_schema() {
   $schema['register_preapproved'] = array(
@@ -56,12 +45,9 @@ function register_preapproved_schema() {
 }
 
 /**
- * Implementation of hook_uninstall().
+ * Implements hook_uninstall().
  */
 function register_preapproved_uninstall() {
-  // Remove tables
-  drupal_uninstall_schema('register_preapproved');
-
   variable_del('register_preapproved_count');
   variable_del('register_preapproved_roles');
   variable_del('register_preapproved_message');
