@@ -157,7 +157,7 @@ function register_preapproved_add_form($form, &$form_state) {
     '#type' => 'textarea',
     '#title' => t('Pre-approved email addresses and domains'),
     '#required' => TRUE,
-    '#description' => t('Enter a list of email addresses and domain patterns, one entry per line. Valid patterns are full email addresses or domains beginning with the @ symbol. Exp. @domain.com'),
+    '#description' => t('Enter a list of email addresses and domain patterns, one entry per line. Valid patterns are full email addresses or domains beginning with the @ symbol. Ex. @domain.com'),
   );
 
   $register_preapproved_roles = array_filter(variable_get('register_preapproved_roles', array()));

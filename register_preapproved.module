@@ -65,7 +65,7 @@ function register_preapproved_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
   $items['admin/people/register_preapproved/add'] = array(
-    'title' => 'Add E-Mails',
+    'title' => 'Manage E-Mails',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('register_preapproved_add_form'),
     'access arguments' => array('administer pre-approved'),
