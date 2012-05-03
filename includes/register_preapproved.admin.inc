@@ -7,9 +7,6 @@
  * Custom function for register pre-approved settings form.
  */
 function register_preapproved_settings_form($form, &$form_id) {
-  $register_preapproved_roles = user_roles(TRUE);
-  unset($register_preapproved_roles[DRUPAL_AUTHENTICATED_RID]);
-
   $form['register_preapproved_count'] = array(
     '#type' => 'radios',
     '#title' => t('Include pre-existing account email addresses in list page counts'),
@@ -25,6 +22,17 @@ function register_preapproved_settings_form($form, &$form_id) {
     '#maxlength' => 250,
     '#description' => t('This message will appear to pre-approved users after registration. Available variable: %site_name'),
   );
+
+  return system_settings_form($form);
+}
+
+/**
+ * Custom function for register pre-approved settings form.
+ */
+function register_preapproved_roles_form($form, &$form_id) {
+  $register_preapproved_roles = user_roles(TRUE);
+  unset($register_preapproved_roles[DRUPAL_AUTHENTICATED_RID]);
+
   if (count($register_preapproved_roles)) {
     $form['register_preapproved_roles'] = array(
       '#type' => 'checkboxes',

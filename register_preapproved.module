@@ -32,9 +32,9 @@ function register_preapproved_help($path, $arg) {
  */
 function register_preapproved_permission() {
   return array(
-    'administer pre-approved patterns' => array(
+    'administer pre-approved' => array(
       'title' => t('Manage Pre-Approved E-mail Patterns'),
-      'description' => t('TBD'),
+      'description' => t('Add and remove pre-approved e-mail addresses and domain patterns and manage general settings.'),
     ),
     'administer pre-approved roles' => array(
       'title' => t('Choose Pre-Approved Roles'),
@@ -68,7 +68,7 @@ function register_preapproved_menu() {
     'title' => 'Add E-Mails',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('register_preapproved_add_form'),
-    'access arguments' => array('administer pre-approved patterns'),
+    'access arguments' => array('administer pre-approved'),
     'weight' => 1,
     'file' => 'includes/register_preapproved.admin.inc',
     'type' => MENU_LOCAL_ACTION,
@@ -77,11 +77,21 @@ function register_preapproved_menu() {
     'title' => 'Settings',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('register_preapproved_settings_form'),
-    'access arguments' => array('administer pre-approved roles'),
+    'access arguments' => array('administer pre-approved'),
     'weight' => 2,
     'file' => 'includes/register_preapproved.admin.inc',
     'type' => MENU_LOCAL_TASK,
   );
+  $items['admin/people/register_preapproved/roles'] = array(
+    'title' => 'Roles',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('register_preapproved_roles_form'),
+    'access arguments' => array('administer pre-approved roles'),
+    'weight' => 3,
+    'file' => 'includes/register_preapproved.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+
   // title omitted to display local menu when editing a pattern's role assignments
   $items['admin/people/register_preapproved/%/edit'] = array(
     'title' => '',
