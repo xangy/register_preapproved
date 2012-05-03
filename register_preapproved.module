@@ -108,7 +108,7 @@ function register_preapproved_menu() {
 /**
  * Implements hook_user_presave().
  *
- * We process the user from here instead of hook_user_insert so we have access
+ * We process the user here instead of hook_user_insert so we have access
  * to the STATUS attribute to approve the user.  This is already set by the time
  * hook_user_insert is called.
  */
@@ -130,37 +130,28 @@ function register_preapproved_user_presave(&$edit, $account, $category) {
     if (!empty($pattern)) {
       $register_preapproved_roles = array_keys(unserialize($pattern['roles']));
 
+      // Add any applicable roles to the user account.
       if (count($register_preapproved_roles)) {
         // retrieve user roles excluding anonymous
         $user_roles = user_roles(TRUE);
 
         // apply pre-approved role selections
         foreach ($register_preapproved_roles as $rid) {
-
           // make sure pre-approved role exists
           if (isset($user_roles[$rid])) {
             $edit['roles'][$rid] = $user_roles[$rid];
           }
         }
-
-        // Approve the user.
-        $edit['status'] = TRUE;
-
-        // display pre-approved confirmation message to user after registration
-        $message = variable_get('register_preapproved_message', t('You have been pre-approved and granted access to %site_name.'));
-        drupal_set_message(t($message, array('%site_name' => variable_get('site_name', 'Drupal'))));
       }
+
+      // Approve the user.
+      $edit['status'] = TRUE;
+
+      // display pre-approved confirmation message to user after registration
+      $message = variable_get('register_preapproved_message', t('You have been pre-approved and granted access to %site_name.'));
+      drupal_set_message(t($message, array('%site_name' => variable_get('site_name', 'Drupal'))));
     }
   }
-}
-
-/**
- * Implements hook_user().
- */
-function register_preapproved_user_insert(&$edit, &$account, $category) {
-  // Match full email address or just the domain including the @ symbol
-  //$result = db_query("SELECT * FROM {register_preapproved} WHERE LOWER(mail) = LOWER('%s') OR LOWER(mail) = LOWER('%s') LIMIT 1", $edit['mail'], strstr($edit['mail'], '@'));
-
 }
 
 /**
