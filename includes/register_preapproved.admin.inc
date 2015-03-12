@@ -3,6 +3,7 @@
  * @file
  * Administration forms and pages.
  */
+
 /**
  * Custom function for register pre-approved settings form.
  */
@@ -12,7 +13,7 @@ function register_preapproved_settings_form($form, &$form_id) {
     '#title' => t('Include pre-existing account email addresses in list page counts'),
     '#default_value' => variable_get('register_preapproved_count', 0),
     '#options' => array(t('Exclude'), t('Include')),
-    '#description' => 'Choose to exclude/include pre-existing account email addresses created prior to the corresponding pattern creation timestamp.',
+    '#description' => t('Choose to exclude/include pre-existing account email addresses created prior to the corresponding pattern creation timestamp.'),
   );
   $form['register_preapproved_message'] = array(
     '#type' => 'textfield',
@@ -21,6 +22,11 @@ function register_preapproved_settings_form($form, &$form_id) {
     '#size' => 100,
     '#maxlength' => 250,
     '#description' => t('This message will appear to pre-approved users after registration. Available variable: %site_name'),
+  );
+  $form['register_preapproved_restrict'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Retrict registration to only pre-approved email addresses.'),
+    '#default_value' => variable_get('register_preapproved_restrict', 0),
   );
 
   return system_settings_form($form);
@@ -206,10 +212,12 @@ function register_preapproved_add_form_validate($form, &$form_state) {
         $errors[] = t('The e-mail address or domain %email is not valid.', $args);
       }
       elseif (db_select('users', 'u')->condition('u.mail', $email)->fields('u')->execute()->rowCount()) {
-        $errors[] = t('The e-mail address %email is already registered.', $args);
+        drupal_set_message(t('The e-mail address %email is already registered.', $args), 'warning');
+        $form_state['values']['emails'] = str_replace($email, '', $form_state['values']['emails']);
       }
       elseif (db_select('register_preapproved', 'rp')->condition('rp.mail', $email)->fields('rp')->execute()->rowCount()) {
-        $errors[] = t('The e-mail address or domain %email is already pre-approved.', $args);
+        drupal_set_message(t('The e-mail address or domain %email is already pre-approved.', $args), 'warning');
+        $form_state['values']['emails'] = str_replace($email, '', $form_state['values']['emails']);
       }
       elseif (drupal_strlen($email) > EMAIL_MAX_LENGTH) {
         $errors[] = t('The e-mail address or domain %email cannot not exceed !maxlength characters.', array('%email' => $email, '!maxlength' => EMAIL_MAX_LENGTH));
@@ -292,7 +300,7 @@ function register_preapproved_edit($rpid) {
         return drupal_get_form('register_preapproved_edit_form', $pattern);
       }
       else {
-        drupal_set_message(t('There are no default roles defined. You can define some on the @settings page.', array('@settings' => l(t('register pre-approved settings'), 'admin/user/register_preapproved/settings'))), 'error');
+        drupal_set_message(t('There are no default roles defined. You can define some on the !settings page.', array('!settings' => l(t('register pre-approved settings'), 'admin/people/register_preapproved/settings'))), 'error');
       }
     }
   }

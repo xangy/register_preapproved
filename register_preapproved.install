@@ -51,4 +51,5 @@ function register_preapproved_uninstall() {
   variable_del('register_preapproved_count');
   variable_del('register_preapproved_roles');
   variable_del('register_preapproved_message');
+  variable_del('register_preapproved_restrict');
 }
