@@ -1,0 +1,26 @@
+{
+    "name": "drupal/register_preapproved",
+    "description": "Maintain email address and domain patterns for users with pre-approved access when registering for a new account.",
+    "type": "drupal-module",
+    "license": "GPL-2.0+",
+    "authors": [
+        {
+            "name": "John Hanley (bacteriaman)",
+            "homepage": "https://www.drupal.org/u/bacteriaman",
+            "role": "Maintainer"
+        },
+        {
+            "name": "Chris Albrecht (KeyboardCowboy)",
+            "email": "chris@lullabot.com",
+            "homepage": "https://www.drupal.org/u/KeyboardCowboy",
+            "role": "Co-maintainer"
+        }
+    ],
+    "minimum-stability": "dev",
+    "support": {
+        "issues": "https://www.drupal.org/project/issues/register_preapproved"
+    },
+    "require": {
+        "composer/installers": "~1.0"
+    }
+}
