@@ -26,23 +26,6 @@ function register_preapproved_help($path, $arg) {
 }
 
 /**
- * Implements hook_permission().
- */
-function register_preapproved_permission() {
-  return array(
-    'administer pre-approved' => array(
-      'title' => t('Manage Pre-Approved E-mail Patterns'),
-      'description' => t('Add and remove pre-approved e-mail addresses and domain patterns and manage general settings.'),
-    ),
-    'administer pre-approved roles' => array(
-      'title' => t('Choose Pre-Approved Roles'),
-      'description' => t('Users may select which roles may be auto-assigned.'),
-      'restrict access' => TRUE,
-    ),
-  );
-}
-
-/**
  * Implements hook_menu().
  */
 function register_preapproved_menu() {
