@@ -1,0 +1,6 @@
+register_preapproved.add_form:
+  route_name: register_preapproved.add_form
+  title: 'Manage E-mails'
+  weight: 1
+  appears_on:
+    - register_preapproved.list_form

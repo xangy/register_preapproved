@@ -1,0 +1,36 @@
+register_preapproved.list_form:
+  path: '/admin/people/register_preapproved'
+  defaults:
+    _form: '\Drupal\register_preapproved\Form\ListForm'
+  requirements:
+    _permission: 'administer register pre-approved email settings'
+
+register_preapproved.add_form:
+  path: '/admin/people/register_preapproved/add'
+  defaults:
+    _form: '\Drupal\register_preapproved\Form\AddForm'
+  requirements:
+    _permission: 'administer register pre-approved email settings'
+
+register_preapproved.settings:
+  path: '/admin/people/register_preapproved/settings'
+  defaults:
+    _form: '\Drupal\register_preapproved\Form\SettingsForm'
+  requirements:
+    _permission: 'administer register pre-approved email settings'
+
+register_preapproved.roles:
+  path: '/admin/people/register_preapproved/roles'
+  defaults:
+    _form: '\Drupal\register_preapproved\Form\RolesForm'
+  requirements:
+    _permission: 'administer register pre-approved role settings'
+
+register_preapproved.edit:
+  path: 'admin/people/register_preapproved/{rpid}/edit'
+  defaults:
+    _title: 'Register pre-approved'
+    _controller: '\Drupal\register_preapproved\Controller\EditController::content'
+  requirements:
+    _permission: 'administer register pre-approved email settings'
+    rpid: '[0-9]+'

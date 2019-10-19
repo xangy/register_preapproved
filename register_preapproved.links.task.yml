@@ -1,0 +1,23 @@
+register_preapproved.list_form:
+  route_name: register_preapproved.list_form
+  title: 'Register Pre-approved'
+  base_route: entity.user.collection
+  weight: 100
+
+register_preapproved.list:
+  route_name: register_preapproved.list_form
+  title: 'List'
+  parent_id: register_preapproved.list_form
+  weight: 1
+
+register_preapproved.settings:
+  route_name: register_preapproved.settings
+  title: 'Settings'
+  parent_id: register_preapproved.list_form
+  weight: 2
+
+register_preapproved.roles:
+  route_name: register_preapproved.roles
+  title: 'Roles'
+  parent_id: register_preapproved.list_form
+  weight: 3

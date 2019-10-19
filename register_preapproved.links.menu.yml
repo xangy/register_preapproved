@@ -1,0 +1,5 @@
+register_preapproved.list_form:
+  title: 'Register Pre-approved'
+  route_name: 'register_preapproved.list_form'
+  parent: 'entity.user.collection'
+  weight: 10

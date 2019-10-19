@@ -5,4 +5,4 @@ type: module
 
 package: User Management
 dependencies:
-  - user
+  - drupal:user

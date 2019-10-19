@@ -4,122 +4,74 @@
  * The register_preapproved module file, which produces the primary functionality.
  */
 
+use Drupal\Core\Database\Query\Condition;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormState;
+use Drupal\Core\Url;
+use Drupal\user\UserInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * @todo Correct way of translating Config Entity
+ *   https://www.drupal.org/docs/8/multilingual/translating-configuration
+ *   Avoid calling unnecessary t function for config translations.
+ */
+
 /**
  * Implements hook_help().
  */
-function register_preapproved_help($path, $arg) {
-  switch ($path) {
-    case 'admin/people/register_preapproved':
-      $output  = '<p>' . t('Email addresses and domain patterns for users who are pre-approved to access the web site after registering (subject to the !public settings). Note: deleting patterns from this list does not affect the account status for users already registered.', array('!public' => l('Registration and Cancellation', 'admin/config/people/accounts'))) . '</p>';
-      $output .= '<p>' . t('The count column indicates the number (as per the register pre-approved !settings page) of registered users associated with each pattern. Full email addresses containing another domain pattern are not included in the corresponding domain pattern count.', array('!settings' => l('Settings', 'admin/people/register_preapproved/settings'))) . '</p>';
+function register_preapproved_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'register_preapproved.list_form':
+      $output  = '<p>' . t('Email addresses and domain patterns for users who are pre-approved to access the web site after registering (subject to the <a href=":public">Registration and Cancellation</a> settings). Note: deleting patterns from this list does not affect the account status for users already registered.', [':public' => Url::fromRoute('entity.user.admin_form')->toString()]) . '</p>';
+      $output .= '<p>' . t('The count column indicates the number (as per the register pre-approved <a href=":settings">Settings</a> page) of registered users associated with each pattern. Full email addresses containing another domain pattern are not included in the corresponding domain pattern count.', [':settings' => Url::fromRoute('register_preapproved.settings')->toString()]) . '</p>';
       return $output;
-    case 'admin/people/register_preapproved/add':
-      return '<p>' . t('Enter one or more email addresses or domain patterns and select the custom roles (as per the register pre-approved !settings page) for users who are pre-approved to access the web site after registering (subject to the !public settings).', array('!settings' => l('Settings', 'admin/people/register_preapproved/settings'), '!public' => l('Registration and Cancellation', 'admin/config/people/accounts'))) . '</p>';
-    case 'admin/people/register_preapproved/settings':
+
+    case 'register_preapproved.add_form':
+      return '<p>' . t('Enter one or more email addresses or domain patterns and select the custom roles (as per the register pre-approved <a href=":settings">Settings</a> page) for users who are pre-approved to access the web site after registering (subject to the <a href=":public">Registration and Cancellation</a> settings).', [':settings' => Url::fromRoute('register_preapproved.settings')->toString(), ':public' => Url::fromRoute('entity.user.admin_form')->toString()]) . '</p>';
+
+    case 'register_preapproved.settings':
       $output  = '<p>' . t('Pattern counts appearing on the list page can include or exclude pre-existing account email addresses that pre-date when each pattern was added.') . '</p>';
       $output .= '<p>' . t('Define a custom welcome message shown to pre-approved users after registration is complete.') . '</p>';
-      $output .= '<p>' . t('Select the default custom roles available for selection when adding email addresses and domain patterns. If you do not see any custom roles, you can define some on the !link page.', array('!link' => l('Roles', 'admin/people/permissions/roles'))) . '</p>';
+      $output .= '<p>' . t('Select the default custom roles available for selection when adding email addresses and domain patterns. If you do not see any custom roles, you can define some on the <a href=":link">Roles</a> page.', [':link' => Url::fromRoute('register_preapproved.roles')->toString()]) . '</p>';
       return $output;
-    case 'admin/people/register_preapproved/%/edit':
+
+    case 'register_preapproved.edit':
       return '<p>' . t('To change the email address or domain for this pattern, you must delete it and create a new entry.') . '</p>';
   }
 }
 
-/**
- * Implements hook_menu().
- */
-function register_preapproved_menu() {
-  $items = array();
-
-  $items['admin/people/register_preapproved'] = array(
-    'title' => 'Register pre-approved',
-    'description' => 'Manage register pre-approved settings.',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('register_preapproved_list_form'),
-    'access arguments' => array('administer pre-approved'),
-    'file' => 'includes/register_preapproved.admin.inc',
-    'type' => MENU_LOCAL_TASK,
-  );
-  $items['admin/people/register_preapproved/list'] = array(
-    'title' => 'List',
-    'weight' => 0,
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
-  $items['admin/people/register_preapproved/add'] = array(
-    'title' => 'Manage E-Mails',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('register_preapproved_add_form'),
-    'access arguments' => array('administer pre-approved'),
-    'weight' => 1,
-    'file' => 'includes/register_preapproved.admin.inc',
-    'type' => MENU_LOCAL_ACTION,
-  );
-  $items['admin/people/register_preapproved/settings'] = array(
-    'title' => 'Settings',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('register_preapproved_settings_form'),
-    'access arguments' => array('administer pre-approved'),
-    'weight' => 2,
-    'file' => 'includes/register_preapproved.admin.inc',
-    'type' => MENU_LOCAL_TASK,
-  );
-  $items['admin/people/register_preapproved/roles'] = array(
-    'title' => 'Roles',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('register_preapproved_roles_form'),
-    'access arguments' => array('administer pre-approved roles'),
-    'weight' => 3,
-    'file' => 'includes/register_preapproved.admin.inc',
-    'type' => MENU_LOCAL_TASK,
-  );
-
-  // title omitted to display local menu when editing a pattern's role assignments
-  $items['admin/people/register_preapproved/%/edit'] = array(
-    'title' => '',
-    'page callback' => 'register_preapproved_edit',
-    'page arguments' => array(3),
-    'access arguments' => array('administer pre-approved'),
-    'file' => 'includes/register_preapproved.admin.inc',
-    'type' => MENU_CALLBACK,
-  );
-
-  return $items;
-}
 
 /**
- * Implements hook_user_presave().
- *
- * We process the user here instead of hook_user_insert so we have access
- * to the STATUS attribute to approve the user.  This is already set by the time
- * hook_user_insert is called.
+ * Implements hook_ENTITY_TYPE_presave().
  */
-function register_preapproved_user_presave(&$edit, $account, $category) {
-  // Only process new user accounts.
-  if ($account->is_new && $category == 'account') {
-
+// @todo Implement hook_ENTITY_TYPE_presave() instead.
+function register_preapproved_user_presave(UserInterface $account) {
+  if ($account->isNew()) {
     // See if the user's email is on the pre-approved list.
-    $pattern = db_select('register_preapproved', 'rp')
+    $or = new Condition('OR');
+    $or->condition('mail', $account->getEmail())
+       ->condition('mail', strstr($account->getEmail(), '@'));
+    $pattern = \Drupal::database()->select('register_preapproved', 'rp')
       ->fields('rp')
-      ->condition(db_or()
-        ->condition('mail', $edit['mail'])
-        ->condition('mail', strstr($edit['mail'], '@'))
-      )
+      ->condition($or)
       ->execute()
       ->fetchAssoc();
 
-    // email address or domain is pre-approved
+    // Email address or domain is pre-approved.
     if (!empty($pattern)) {
       $register_preapproved_roles = array_keys(unserialize($pattern['roles']));
 
       // Add any applicable roles to the user account.
       if (count($register_preapproved_roles)) {
-        // retrieve user roles excluding anonymous
-        $user_roles = user_roles(TRUE);
+        // Retrieve user roles excluding anonymous.
+        $user_roles = user_role_names(TRUE);
 
-        // apply pre-approved role selections
+        // Apply pre-approved role selections.
         foreach ($register_preapproved_roles as $rid) {
-          // make sure pre-approved role exists
+          // Make sure pre-approved role exists.
           if (isset($user_roles[$rid])) {
+            // @todo Probably use ContentEntityBase::set for updating entity field values.
             $edit['roles'][$rid] = $user_roles[$rid];
           }
         }
@@ -128,9 +80,10 @@ function register_preapproved_user_presave(&$edit, $account, $category) {
       // Approve the user.
       $edit['status'] = TRUE;
 
-      // display pre-approved confirmation message to user after registration
-      $message = variable_get('register_preapproved_message', t('You have been pre-approved and granted access to %site_name.'));
-      drupal_set_message(t($message, array('%site_name' => variable_get('site_name', 'Drupal'))));
+      // Display pre-approved confirmation message to user after registration.
+      $message = \Drupal::config('register_preapproved.settings')->get('register_preapproved_message');
+      // @todo Site name should be coming from \Drupal::config('system.site')->get('name');
+      Drupal::messenger()->addStatus(t($message, ['%site_name' => 'Drupal']));
     }
   }
 }
@@ -154,29 +107,33 @@ function valid_domain($mail) {
 }
 
 /**
- * Implements hook_form_alter().
+ * Implements hook_form_FORM_ID_alter().
  */
-function register_preapproved_form_user_register_form_alter(&$form, &$form_state, $form_id) {
-  $form['#validate'][] = 'register_preapproved_validate_register_form';
+function register_preapproved_form_user_register_form_alter(array &$form, FormState &$form_state) {
+  // Consider using _register_preapproved_validate_register_form for non-hooks and
+  $form['#validate'][] = '_register_preapproved_validate_register_form';
 }
 
 /**
  * Custom validate function for user registration form.
  */
-function register_preapproved_validate_register_form(&$form, &$form_state) {
-  if (variable_get('register_preapproved_restrict', 0)) {
-    $pattern = db_select('register_preapproved', 'rp')
+function _register_preapproved_validate_register_form(array &$form, FormState $form_state) {
+  $config = \Drupal::config('register_preapproved.settings');
+  if ($config->get('register_preapproved_restrict')) {
+    $or = new Condition('OR');
+    $or->condition('mail', $form_state->getValue('mail'))
+      ->condition('mail', strstr($form_state->getValue('mail')), '@');
+    $query = \Drupal::database()->select('register_preapproved', 'rp')
       ->fields('rp')
-      ->condition(db_or()
-        ->condition('mail', $form_state['values']['mail'])
-        ->condition('mail', strstr($form_state['values']['mail'], '@'))
-      )
-      ->execute()
-      ->fetchAssoc();
+      ->condition($or);
+    $pattern = $query->execute()->fetchAssoc();
 
     if (empty($pattern)) {
-      $message = variable_get('register_preapproved_not_preapproved_message', t('Your email address has not been pre-approved for use on %site_name.'));
-      form_set_error('mail', t($message, array('%site_name' => variable_get('site_name', 'Drupal'))));
+      $message = $config->get('register_preapproved_message');
+      // @todo USe FormState::setError instead and system.site.name for Site name.
+      $site_name = \Drupal::config('system.site')->get('name');
+//      form_set_error('mail', t($message, ['%site_name' => $site_name]));
+      $form_state->setError($form['mail'], t($message, ['%site_name' => $site_name]));
     }
   }
 }

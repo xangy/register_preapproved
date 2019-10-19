@@ -1,8 +1,8 @@
-administer pre-approved:
+administer register pre-approved email settings:
   title: Manage Pre-Approved E-mail Patterns
   description: Add and remove pre-approved e-mail addresses and domain patterns and manage general settings.
 
-administer pre-approved roles:
+administer register pre-approved role settings:
   title: Choose Pre-Approved Roles
   description: Users may select which roles may be auto-assigned.
   restrict access: true

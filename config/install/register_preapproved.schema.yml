@@ -1,0 +1,15 @@
+register_preapproved.settings:
+  type: config_object
+  mapping:
+    count:
+      type: integer
+      label: 'Count'
+    message:
+      type: text
+      label: 'Pre-approved message'
+    restrict:
+      type: boolean
+      label: 'Retrict registration to only pre-approved email addresses'
+    roles:
+      type: array
+      label: 'Pre-approved roles'

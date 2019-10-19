@@ -1,0 +1,4 @@
+count: 0
+message: 'You have been pre-approved and granted access to %site_name.'
+restrict: 0
+roles: []
